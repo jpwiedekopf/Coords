@@ -4,6 +4,8 @@ import android.content.Context
 import android.location.Location
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
+import com.google.openlocationcode.OpenLocationCode
+import com.what3words.androidwrapper.What3WordsV3
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,7 +27,17 @@ class CoordsViewModel @Inject constructor() : ViewModel() {
     var updatedAt: StateFlow<LocalDateTime?> = _updatedAt
 
     suspend fun updateLocation(location: Location) {
-        this._latLongWgs84.emit(
+        when {
+            _latLongWgs84.value == null -> _latLongWgs84.emit(
+                LatLongDecimalWgs84Point.fromLocation(location)
+            )
+            !_latLongWgs84.value!!.equalLocation(location) -> LatLongDecimalWgs84Point.fromLocation(
+                location
+            )
+
+        }
+        this._latLongWgs84.compareAndSet(
+            this._latLongWgs84.value,
             LatLongDecimalWgs84Point(
                 latitude = location.latitude.toBigDecimal(),
                 longitude = location.longitude.toBigDecimal(),
@@ -61,8 +73,22 @@ class CoordsViewModel @Inject constructor() : ViewModel() {
 data class LatLongDecimalWgs84Point(
     val latitude: BigDecimal, val longitude: BigDecimal, val rawLocation: Location
 ) {
-    fun format(projection: SupportedProjection, context: Context) =
+    suspend fun format(projection: SupportedProjection, context: Context) =
         projection.formatter(this, context)
+
+    fun equalLocation(location: Location): Boolean {
+        val lat = latitude.toString().take(8).compareTo(location.latitude.toString().take(8))
+        val long = longitude.toString().take(8).compareTo(location.longitude.toString().take(8))
+        return lat == 0 && long == 0
+    }
+
+    companion object {
+        fun fromLocation(location: Location) = LatLongDecimalWgs84Point(
+            latitude = location.latitude.toBigDecimal(),
+            longitude = location.longitude.toBigDecimal(),
+            rawLocation = location
+        )
+    }
 }
 
 data class LabelledDatum(
@@ -86,7 +112,7 @@ enum class SupportedProjection(
     @StringRes val shortNameRes: Int,
     @StringRes val longNameRes: Int,
     @StringRes val explanationRes: Int? = null,
-    val formatter: (LatLongDecimalWgs84Point, Context) -> List<LabelledDatum>
+    val formatter: suspend (LatLongDecimalWgs84Point, Context) -> List<LabelledDatum>
 ) {
     WGS84_DEC(
         shortNameRes = R.string.wgs84_dec_short,
@@ -155,6 +181,35 @@ enum class SupportedProjection(
                 LabelledDatum(R.string.northing, northing),
                 LabelledDatum(R.string.easting, easting)
             )
+        }
+    ),
+    OPEN_LOCATION_CODE(
+        shortNameRes = R.string.plus_code_short,
+        longNameRes = R.string.plus_code_short,
+        explanationRes = R.string.plus_code_explanation,
+        formatter = { latlong, _ ->
+            val olc =
+                OpenLocationCode.encode(latlong.latitude.toDouble(), latlong.longitude.toDouble())
+            listOf(LabelledDatum(R.string.plus_code_short, olc))
+        }
+    ),
+    WHAT3WORDS(
+        shortNameRes = R.string.w3w_short,
+        longNameRes = R.string.w3w_long,
+        explanationRes = R.string.w3w_explanation,
+        formatter = { latlong, context ->
+            val w3wApi = What3WordsV3(BuildConfig.W3W_API_KEY, context)
+            val w3w = w3wApi.convertTo3wa(
+                com.what3words.javawrapper.request.Coordinates(
+                    latlong.latitude.toDouble(),
+                    latlong.longitude.toDouble()
+                )
+            ).execute()
+            val words = when (w3w.isSuccessful) {
+                true -> w3w.words
+                else -> context.getString(R.string.w3w_error)
+            }
+            listOf(LabelledDatum(R.string.w3w_address, words))
         }
     )
 }

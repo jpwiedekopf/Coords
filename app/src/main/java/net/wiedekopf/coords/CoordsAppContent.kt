@@ -9,6 +9,7 @@ import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Text
@@ -18,16 +19,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.PagerState
 import com.google.accompanist.pager.rememberPagerState
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.threeten.bp.LocalDateTime
 import org.threeten.bp.format.DateTimeFormatter
 import kotlin.math.roundToInt
@@ -52,8 +54,7 @@ fun CoordsAppContent() {
     val locationListener = LocationListener { location ->
         myLocation = location
         Log.i(
-            TAG,
-            "got location: LAT ${location.latitude} LONG ${location.longitude}" + " at ${
+            TAG, "got location: LAT ${location.latitude} LONG ${location.longitude}" + " at ${
                 LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME)
             }"
         )
@@ -61,9 +62,7 @@ fun CoordsAppContent() {
     val locationManager =
         ContextCompat.getSystemService(context, LocationManager::class.java) as LocationManager
 
-    val projections = listOf(
-        SupportedProjection.WGS84_DEC, SupportedProjection.WGS84_DMS, SupportedProjection.UTM
-    )
+    val projections = SupportedProjection.values().toList()
 
     val pagerState = rememberPagerState(0)
 
@@ -82,8 +81,7 @@ fun CoordsAppContent() {
         )
     }
 
-    Scaffold(
-        scaffoldState = scaffoldState,
+    Scaffold(scaffoldState = scaffoldState,
         backgroundColor = colorScheme.background,
         contentColor = colorScheme.onBackground,
         bottomBar = {
@@ -92,8 +90,7 @@ fun CoordsAppContent() {
                     pagerState.scrollToPage(it)
                 }
             }
-        }
-    ) { scaffoldPadding ->
+        }) { scaffoldPadding ->
         Column(modifier = Modifier.padding(scaffoldPadding)) {
             DisplayCoordinates(viewModel, currentProjection, pagerState, projections.size)
         }
@@ -103,30 +100,29 @@ fun CoordsAppContent() {
 @ExperimentalPagerApi
 @Composable
 fun AppBottomBar(
-    projections: List<SupportedProjection>,
-    currentPage: Int,
-    onChangePage: (Int) -> Unit
+    projections: List<SupportedProjection>, currentPage: Int, onChangePage: (Int) -> Unit
 ) {
     BottomAppBar(
         backgroundColor = colorScheme.primaryContainer,
         contentColor = colorScheme.onPrimaryContainer
     ) {
-        TabRow(
-            modifier = Modifier.fillMaxSize(),
+        ScrollableTabRow(
+            modifier = Modifier.weight(1f),
+            edgePadding = 0.dp,
             selectedTabIndex = currentPage,
             backgroundColor = colorScheme.primaryContainer,
             contentColor = colorScheme.onPrimaryContainer,
         ) {
             projections.forEachIndexed { page, proj ->
                 Tab(
-                    selected = currentPage == page,
-                    onClick = { onChangePage(page) }) {
-                    Text(
-                        stringResource(proj.shortNameRes),
-                        color = colorScheme.onPrimaryContainer,
-                        style = typography.bodyLarge
-                    )
-                }
+                    selected = currentPage == page, onClick = { onChangePage(page) },
+                    text = {
+                        Text(
+                            stringResource(proj.shortNameRes),
+                            color = colorScheme.onPrimaryContainer,
+                            style = typography.bodyLarge
+                        )
+                    })
             }
         }
     }
@@ -144,7 +140,9 @@ fun DisplayCoordinates(
     val lastUpdate by viewModel.updatedAt.collectAsState()
     when (latLong) {
         null -> WaitingScreen()
-        else -> CoordinateViewerScreen(latLong!!, currentProjection, lastUpdate!!, pagerState, numberOfPages)
+        else -> CoordinateViewerScreen(
+            latLong!!, currentProjection, lastUpdate!!, pagerState, numberOfPages
+        )
     }
 }
 
@@ -171,32 +169,50 @@ fun CoordinateViewerScreen(
                 delay(1000L)
             }
         }
-        Column(
-            Modifier
-                .wrapContentHeight()
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = stringResource(id = currentProjection.longNameRes),
-                style = typography.headlineMedium,
-                textAlign = TextAlign.Center
-            )
-            currentProjection.explanationRes?.let { exp ->
-                Text(text = stringResource(id = exp), style = typography.labelMedium)
+        CompositionLocalProvider(LocalContentColor provides colorScheme.onBackground) {
+            Column(
+                Modifier
+                    .wrapContentHeight()
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = stringResource(id = currentProjection.longNameRes),
+                    style = typography.headlineMedium,
+                    textAlign = TextAlign.Center
+                )
+                currentProjection.explanationRes?.let { exp ->
+                    Text(
+                        modifier = Modifier.fillMaxWidth(0.75f),
+                        text = stringResource(id = exp),
+                        style = typography.labelMedium,
+                        textAlign = TextAlign.Center
+                    )
+                }
+                Text(
+                    text = updatedAtString,
+                    style = typography.bodyLarge,
+                    fontWeight = FontWeight.Bold
+                )
             }
-            Text(text = updatedAtString, style = typography.bodyMedium)
-        }
-        Column(
-            Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.SpaceEvenly,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            val format =
-                latLong.format(currentProjection, context) + commonElementsForLocation(latLong, context)
-            format.forEach { ld ->
-                LabelledDatumView(ld)
+            Column(
+                Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.SpaceEvenly,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                val formatElements = remember { mutableStateListOf<LabelledDatum>() }
+
+                LaunchedEffect(latLong, pagerState.currentPage) {
+                    formatElements.clear()
+                    CoroutineScope(Dispatchers.IO).launch {
+                        formatElements.addAll(latLong.format(currentProjection, context))
+                    }
+                    formatElements.addAll(commonElementsForLocation(latLong, context))
+                }
+                formatElements.forEach {
+                    LabelledDatumView(labelledDatum = it)
+                }
             }
         }
     }
@@ -216,19 +232,16 @@ fun commonElementsForLocation(
     when (latLong.rawLocation.hasAccuracy()) {
         true -> LabelledDatum(
             label = R.string.accuracy,
-            datum = context.getString(R.string.accuracy_format, latLong.rawLocation.altitude),
+            datum = context.getString(R.string.accuracy_format, latLong.rawLocation.accuracy),
             priority = 2
         )
         else -> null
     },
     when (latLong.rawLocation.hasBearing()) {
         true -> LabelledDatum(
-            label = R.string.bearing,
-            datum = context.getString(
-                R.string.bearing_format,
-                latLong.rawLocation.bearing.roundToInt()
-            ),
-            priority = 2
+            label = R.string.bearing, datum = context.getString(
+                R.string.bearing_format, latLong.rawLocation.bearing.roundToInt()
+            ), priority = 2
         )
         else -> null
     },
@@ -267,19 +280,21 @@ fun LabelledDatumView(labelledDatum: LabelledDatum) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
+        val contentColor = when (labelledDatum.priority) {
+            1 -> colorScheme.onBackground
+            else -> colorScheme.onBackground.copy(alpha = 0.8f)
+        }
         Text(
             text = stringResource(id = labelledDatum.label), style = when (labelledDatum.priority) {
-                1 -> typography.displaySmall
-                else -> typography.bodyMedium
-            }
+                1 -> typography.displaySmall.copy(fontSize = 30.sp)
+                else -> typography.displaySmall.copy(fontSize = 28.sp)
+            }, color = contentColor
         )
         Text(
             text = labelledDatum.datum, style = when (labelledDatum.priority) {
                 1 -> typography.displayMedium
                 else -> typography.displaySmall
-            },
-            fontFamily = FontFamily.Monospace,
-            textAlign = TextAlign.Center
+            }, fontFamily = FontFamily.Monospace, textAlign = TextAlign.Center, color = contentColor
         )
     }
 }
