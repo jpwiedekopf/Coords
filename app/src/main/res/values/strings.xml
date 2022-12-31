@@ -16,5 +16,15 @@
     <string name="south_symbol">S</string>
     <string name="east_symbol">E</string>
     <string name="west_symbol">W</string>
-    <string name="duration_format">%d s ago</string>
+    <string name="last_update_format">Updated at: %s</string>
+    <string name="utm_short">UTM</string>
+    <string name="utm_long">UTM (Universal Transverse Mercator)</string>
+    <string name="northing">Northing</string>
+    <string name="easting">Easting</string>
+    <string name="bearing">Bearing</string>
+    <string name="altitude">Altitude</string>
+    <string name="accuracy">Accuracy</string>
+    <string name="altitude_format">%.1f m</string>
+    <string name="accuracy_format">±%.1f m</string>
+    <string name="bearing_format">%d°</string>
 </resources>

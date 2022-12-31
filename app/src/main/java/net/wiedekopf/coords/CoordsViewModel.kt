@@ -44,11 +44,13 @@ class CoordsViewModel @Inject constructor() : ViewModel() {
         return CoordinateTransformFactory().createTransform(wgs84, utm)
     }
 
+    @Suppress("unused")
     private fun toUtm(location: Location): ProjCoordinate {
         val wgs84Coordinate = ProjCoordinate(location.latitude, location.longitude)
         return wgsToUtm.transform(wgs84Coordinate)
     }
 
+    @Suppress("unused")
     private fun CoordinateTransform.transform(source: ProjCoordinate): ProjCoordinate {
         val target = ProjCoordinate()
         wgsToUtm.transform(source, target)
@@ -64,7 +66,7 @@ data class LatLongDecimalWgs84Point(
 }
 
 data class LabelledDatum(
-    @StringRes val label: Int, val datum: String
+    @StringRes val label: Int, val datum: String, val priority: Int = 1
 )
 
 private fun getDesignatorFromBigDecimal(
@@ -84,13 +86,11 @@ enum class SupportedProjection(
     @StringRes val shortNameRes: Int,
     @StringRes val longNameRes: Int,
     @StringRes val explanationRes: Int? = null,
-    val epsg: String,
     val formatter: (LatLongDecimalWgs84Point, Context) -> List<LabelledDatum>
 ) {
     WGS84_DEC(
         shortNameRes = R.string.wgs84_dec_short,
         longNameRes = R.string.wgs84_dec_long,
-        epsg = "EPSG:4326",
         formatter = { latlong, context ->
             val lat = "${
                 latlong.latitude.abs().formatWithDecimals(6)
@@ -113,12 +113,14 @@ enum class SupportedProjection(
                 )
             }"
 
-            listOf(LabelledDatum(R.string.latitude, lat), LabelledDatum(R.string.longitude, long))
+            listOf(
+                LabelledDatum(R.string.latitude, lat),
+                LabelledDatum(R.string.longitude, long)
+            )
         }),
     WGS84_DMS(
         shortNameRes = R.string.wgs84_dms_short,
         longNameRes = R.string.wgs84_dms_long,
-        epsg = "EPSG:4326",
         formatter = { latlong, context ->
             val lat = "${latlong.latitude.toDMS()} ${
                 getDesignatorFromBigDecimal(
@@ -136,8 +138,25 @@ enum class SupportedProjection(
                     R.string.east_symbol
                 )
             }"
-            listOf(LabelledDatum(R.string.latitude, lat), LabelledDatum(R.string.longitude, long))
-        })
+            listOf(
+                LabelledDatum(R.string.latitude, lat), LabelledDatum(
+                    R.string.longitude,
+                    long
+                )
+            )
+        }),
+    UTM(
+        shortNameRes = R.string.utm_short,
+        longNameRes = R.string.utm_long,
+        formatter = { _, _ ->
+            val northing = "NYI"
+            val easting = "NYI"
+            listOf(
+                LabelledDatum(R.string.northing, northing),
+                LabelledDatum(R.string.easting, easting)
+            )
+        }
+    )
 }
 
 
