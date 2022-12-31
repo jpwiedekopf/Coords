@@ -2,4 +2,10 @@
     <string name="app_name">Coords</string>
     <string name="latitude">Latitude</string>
     <string name="longitude">Longitude</string>
+    <string name="rationale_after_denied">Coords needs access to your precise location and can\'t work otherwise. Please grant the permission.</string>
+    <string name="rationale_first_grant">Coords needs access to your fine location. Please grant the permission here:</string>
+    <string name="rationale_no_permissions">This app requires access to your precise location. Approximate location access is not sufficient for this app, since it is not precise enough. Please upgrade the granted permission below:</string>
+    <string name="rationale_upgrade_fine">You have only granted access to your approximate location, but this app requires access to your precise location. Please upgrade to fine location access below:</string>
+    <string name="grant_permissions">Grant permissions</string>
+    <string name="waiting_for_location">Waiting for location update…</string>
 </resources>
