@@ -8,4 +8,13 @@
     <string name="rationale_upgrade_fine">You have only granted access to your approximate location, but this app requires access to your precise location. Please upgrade to fine location access below:</string>
     <string name="grant_permissions">Grant permissions</string>
     <string name="waiting_for_location">Waiting for location update…</string>
+    <string name="wgs84_dec_short">WGS84 Dec</string>
+    <string name="wgs84_dec_long">WGS84 Decimal</string>
+    <string name="wgs84_dms_short">WGS84 DMS</string>
+    <string name="wgs84_dms_long">WGS84 Degrees-Minutes-Seconds</string>
+    <string name="north_symbol">N</string>
+    <string name="south_symbol">S</string>
+    <string name="east_symbol">E</string>
+    <string name="west_symbol">W</string>
+    <string name="duration_format">%d s ago</string>
 </resources>
