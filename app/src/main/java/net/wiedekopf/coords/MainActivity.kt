@@ -76,7 +76,7 @@ fun MissingPermissionsContent(locationPermissionState: MultiplePermissionsState)
             color = colorScheme.onBackground
         )
         Button(onClick = grantRequest) {
-            Text(stringResource(id = R.string.grant_permissions), fontWeight = FontWeight.Bold)
+            Text(stringResource(id = R.string.grant_permission), fontWeight = FontWeight.Bold)
         }
     }
 }

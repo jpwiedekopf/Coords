@@ -1,40 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="accuracy">Accuracy</string>
+    <string name="accuracy_format" translatable="false">±%.1f m</string>
+    <string name="altitude">Altitude</string>
+    <string name="altitude_format" translatable="false">%.1f m</string>
     <string name="app_name">Coords</string>
+    <string name="bearing">Bearing</string>
+    <string name="bearing_format" translatable="false">%d°</string>
+    <string name="coordinate_system_request_internet_text_format">The chosen projection, %s, needs to send your location to an external service for geocoding. This will only be done if you grant permission to do this if you click the below button.\nYou can disable the permission after granting it by tapping the small \"disable\" link below the projection name at the top of the screen.</string>
+    <string name="disable_projection">Disable Projection</string>
+    <string name="east_symbol">E</string>
+    <string name="easting">Easting</string>
+    <string name="grant_permission">Grant permission</string>
+    <string name="last_update_format">Updated at: %s</string>
     <string name="latitude">Latitude</string>
     <string name="longitude">Longitude</string>
-    <string name="rationale_after_denied">Coords needs access to your precise location and can\'t work otherwise. Please grant the permission.</string>
-    <string name="rationale_first_grant">Coords needs access to your fine location. Please grant the permission here:</string>
-    <string name="rationale_no_permissions">This app requires access to your precise location. Approximate location access is not sufficient for this app, since it is not precise enough. Please upgrade the granted permission below:</string>
-    <string name="rationale_upgrade_fine">You have only granted access to your approximate location, but this app requires access to your precise location. Please upgrade to fine location access below:</string>
-    <string name="grant_permissions">Grant permissions</string>
-    <string name="waiting_for_location">Waiting for location update…</string>
-    <string name="wgs84_dec_short">WGS84 Dec</string>
-    <string name="wgs84_dec_long">WGS84 Decimal</string>
-    <string name="wgs84_dms_short">WGS84 DMS</string>
-    <string name="wgs84_dms_long">WGS84 Degrees-Minutes-Seconds</string>
     <string name="north_symbol">N</string>
-    <string name="south_symbol">S</string>
-    <string name="east_symbol">E</string>
-    <string name="west_symbol">W</string>
-    <string name="last_update_format">Updated at: %s</string>
-    <string name="utm_short">UTM</string>
-    <string name="utm_long">UTM (Universal Transverse Mercator)</string>
     <string name="northing">Northing</string>
-    <string name="easting">Easting</string>
-    <string name="bearing">Bearing</string>
-    <string name="altitude">Altitude</string>
-    <string name="accuracy">Accuracy</string>
-    <string name="altitude_format">%.1f m</string>
-    <string name="accuracy_format">±%.1f m</string>
-    <string name="bearing_format">%d°</string>
-    <string name="olc_code">Open Location Code</string>
-    <string name="olc_code_explanation">\"Open Location Code\" are an open specification by Google, also known as the \"Plus Code\". The returned code is accurate to 3.4m.</string>
-    <string name="w3w_short">What3Words</string>
-    <string name="w3w_long">What3Words</string>
-    <string name="w3w_explanation">What3Words is a grid-based algorithm to assign three-word codes to grid tiles. This uses an external service that only receives the current position.</string>
-    <string name="w3w_address">What3Words Address (EN)</string>
-    <string name="w3w_error">Error requesting What3Words address :(</string>
+    <string name="olc_code" translatable="false">Open Location Code</string>
+    <string name="olc_code_explanation">\"Open Location Codes\" are an open specification by Google for coding short adresses, and are also known as \"Plus Codes\".</string>
+    <string name="privacy">Privacy</string>
+    <string name="rationale_after_denied">Coords needs access to your precise location and can\'t work otherwise. Please grant the permission:</string>
+    <string name="rationale_first_grant">Coords needs access to your fine location. Please grant the permission here:</string>
+    <string name="rationale_no_permissions">This app requires access to your precise location. Approximate location access is not sufficient for this app, since it is not precise enough. Please grant permission to access the fine location below:</string>
+    <string name="rationale_upgrade_fine">You have only granted access to your approximate location, but this app requires access to your precise location. Please upgrade to fine location access below:</string>
+    <string name="south_symbol">S</string>
+    <string name="utm_long">UTM (Universal Transverse Mercator)</string>
+    <string name="utm_short">UTM</string>
     <string name="utm_zone">UTM Zone</string>
-    <string name="coordinate_system_request_internet_text_format">The chosen projection, %s, needs to send your location to an external service for geocoding. This will only be done if you grant permission to do this if you click the below button. You can disable the permission after granting it by tapping the small \"disable\" link below the projection name at the top of the screen.</string>
-    <string name="grant_permission_internet">Grant permission</string>
+    <string name="w3w_address">///</string>
+    <string name="w3w_error">Error requesting the what3words address :(</string>
+    <string name="w3w_explanation">what3words is a grid-based algorithm to assign three-word codes to grid tiles.</string>
+    <string name="w3w_long" translatable="false">what3words</string>
+    <string name="w3w_privacy_link" translatable="false">https://wiedekopf.net/projects/Coords#T-and-C</string>
+    <string name="w3w_short" translatable="false">what3words</string>
+    <string name="waiting_for_location">Waiting for location update…</string>
+    <string name="west_symbol">W</string>
+    <string name="wgs84_dec_long">WGS84 Decimal</string>
+    <string name="wgs84_dec_short">WGS84 Dec.</string>
+    <string name="wgs84_dms_long">WGS84 Degrees-Minutes-Seconds</string>
+    <string name="wgs84_dms_short">WGS84 DMS</string>
+    <string name="utm_explanation">UTM is commonly used by emergency services in Europe. It consists of the Easting and Northing parts, as well as the zone, which is generally not required by the dispatchers.</string>
 </resources>

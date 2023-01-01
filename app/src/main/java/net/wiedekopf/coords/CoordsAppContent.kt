@@ -2,57 +2,56 @@ package net.wiedekopf.coords
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
+import android.net.Uri
 import android.util.Log
+import androidx.annotation.StringRes
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.*
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.MaterialTheme.typography
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.google.accompanist.pager.ExperimentalPagerApi
-import com.google.accompanist.pager.HorizontalPager
-import com.google.accompanist.pager.PagerState
-import com.google.accompanist.pager.rememberPagerState
+import com.google.accompanist.pager.*
 import de.schnettler.datastore.manager.DataStoreManager
-import de.schnettler.datastore.manager.PreferenceRequest
 import kotlinx.coroutines.*
+import net.wiedekopf.coords.ui.util.pagerTabIndicatorOffsetM3
 import org.threeten.bp.LocalDateTime
 import org.threeten.bp.format.DateTimeFormatter
 
 private const val TAG = "CoordsApp"
 private val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-private val Context.dataStore by preferencesDataStore(
+val Context.dataStore by preferencesDataStore(
     name = "settings"
 )
-
-private fun prefKeyForProjection(projection: SupportedProjection) =
-    "allow_internet_${projection::class.simpleName}"
+val Context.dataStoreManager get() = DataStoreManager(this.dataStore)
 
 
-@OptIn(ExperimentalPagerApi::class)
+@OptIn(ExperimentalPagerApi::class, ExperimentalMaterial3Api::class)
 @SuppressLint("MissingPermission")
 @Composable
 fun CoordsAppContent() {
@@ -68,7 +67,7 @@ fun CoordsAppContent() {
     }
     val locationListener = LocationListener { location ->
         myLocation = location
-        Log.i(
+        Log.d(
             TAG, "got location: LAT ${location.latitude} LONG ${location.longitude}" + " at ${
                 LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME)
             }"
@@ -79,11 +78,8 @@ fun CoordsAppContent() {
 
     val projections = SupportedProjection.all
 
-    val currentProjection by viewModel.currentProjection.collectAsState()
-
     val pagerState = rememberPagerState(0)
 
-    val scaffoldState = rememberScaffoldState()
     val coroutineScope = rememberCoroutineScope()
 
     SideEffect {
@@ -92,19 +88,21 @@ fun CoordsAppContent() {
         )
     }
 
-    Scaffold(scaffoldState = scaffoldState,
-        backgroundColor = colorScheme.background,
+    Scaffold(containerColor = colorScheme.background,
         contentColor = colorScheme.onBackground,
         bottomBar = {
-            if (myLocation != null) AppBottomBar(projections, pagerState.currentPage) {
+            if (myLocation != null) AppBottomBar(projections, pagerState) {
+                Log.d(
+                    TAG,
+                    "changing from page ${pagerState.currentPage} to $it (${projections[it]::class.simpleName})"
+                )
                 coroutineScope.launch {
-                    pagerState.scrollToPage(it)
-                    viewModel.setProjection(projections[it])
+                    pagerState.animateScrollToPage(it)
                 }
             }
         }) { scaffoldPadding ->
         Column(modifier = Modifier.padding(scaffoldPadding)) {
-            DisplayCoordinates(viewModel, currentProjection, pagerState, projections.size)
+            DisplayCoordinates(viewModel, pagerState, projections.size)
         }
     }
 }
@@ -112,23 +110,35 @@ fun CoordsAppContent() {
 @ExperimentalPagerApi
 @Composable
 fun AppBottomBar(
-    projections: List<SupportedProjection>, currentPage: Int, onChangePage: (Int) -> Unit
+    projections: List<SupportedProjection>, pagerState: PagerState, onChangePage: (Int) -> Unit
 ) {
+    val currentPage = pagerState.currentPage
     BottomAppBar(
-        backgroundColor = colorScheme.primaryContainer,
-        contentColor = colorScheme.onPrimaryContainer
+        containerColor = colorScheme.primaryContainer,
+        contentColor = colorScheme.onPrimaryContainer,
+        modifier = Modifier.height(IntrinsicSize.Max)
     ) {
-        ScrollableTabRow(
-            modifier = Modifier.weight(1f),
-            edgePadding = 0.dp,
+        ScrollableTabRow(modifier = Modifier.weight(1f),
+            divider = {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(color = colorScheme.onPrimaryContainer.copy(0.5f))
+                )
+            },
             selectedTabIndex = currentPage,
-            backgroundColor = colorScheme.primaryContainer,
+            containerColor = colorScheme.primaryContainer,
             contentColor = colorScheme.onPrimaryContainer,
-        ) {
+            indicator = { tabPositions ->
+                TabRowDefaults.Indicator(
+                    Modifier.pagerTabIndicatorOffsetM3(pagerState, tabPositions)
+                )
+            }) {
             projections.forEachIndexed { page, proj ->
                 Tab(selected = currentPage == page, onClick = { onChangePage(page) }, text = {
                     Text(
-                        stringResource(proj.shortNameRes),
+                        text = stringResource(id = proj.shortNameRes),
                         color = colorScheme.onPrimaryContainer,
                         style = typography.bodyLarge
                     )
@@ -141,21 +151,20 @@ fun AppBottomBar(
 @OptIn(ExperimentalPagerApi::class)
 @Composable
 fun DisplayCoordinates(
-    viewModel: CoordsViewModel,
-    currentProjection: SupportedProjection,
-    pagerState: PagerState,
-    numberOfPages: Int
+    viewModel: CoordsViewModel, pagerState: PagerState, numberOfPages: Int
 ) {
     val latLong by viewModel.latLongWgs84.collectAsState()
     val lastUpdate by viewModel.updatedAt.collectAsState()
-    val context = LocalContext.current
+    LocalContext.current
+
     when (latLong) {
         null -> WaitingScreen()
         else -> CoordinateViewerScreen(
-            latLong!!, currentProjection, lastUpdate!!, pagerState, numberOfPages
-        ) {
-            viewModel.formatData(context)
-        }
+            latLong = latLong!!,
+            lastUpdate = lastUpdate!!,
+            pagerState = pagerState,
+            numberOfPages = numberOfPages
+        )
     }
 }
 
@@ -166,29 +175,50 @@ private fun formatLastUpdate(context: Context, lastUpdate: LocalDateTime): Strin
 @Composable
 fun CoordinateViewerScreen(
     latLong: LatLongDecimalWgs84Point,
-    currentProjection: SupportedProjection,
     lastUpdate: LocalDateTime,
     pagerState: PagerState,
-    numberOfPages: Int,
-    formatProjection: suspend () -> List<LabelledDatum>
-) = HorizontalPager(count = numberOfPages, state = pagerState) {
+    numberOfPages: Int
+) = HorizontalPager(count = numberOfPages, state = pagerState) { page ->
+    val context = LocalContext.current
+    val allPages by remember {
+        mutableStateOf(SupportedProjection.all.map {
+            CoordsScreen.getScreen(it, context = context)
+        })
+    }
     Column(Modifier.fillMaxSize()) {
-        val context = LocalContext.current
         var updatedAtString by remember {
             mutableStateOf(formatLastUpdate(context, lastUpdate))
         }
+
         LaunchedEffect(lastUpdate) {
             while (true) {
                 updatedAtString = formatLastUpdate(context, lastUpdate)
                 delay(1000L)
             }
         }
+
+        val currentScreen by remember {
+            derivedStateOf {
+                allPages[page]
+            }
+        }
+
+        val currentProjection by remember {
+            derivedStateOf {
+                currentScreen.projection
+            }
+        }
+
+        val hasInternetPermission by currentScreen.checkInternetPermission()
+            .collectAsState(initial = null)
+
+        val coroutineScope = rememberCoroutineScope()
+
         CompositionLocalProvider(LocalContentColor provides colorScheme.onBackground) {
             Column(
                 Modifier
                     .wrapContentHeight()
                     .fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
@@ -196,61 +226,62 @@ fun CoordinateViewerScreen(
                     style = typography.headlineMedium,
                     textAlign = TextAlign.Center
                 )
+                if (currentProjection.usesInternet && hasInternetPermission == true) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        Text(
+                            modifier = Modifier.clickable {
+                                coroutineScope.launch {
+                                    context.dataStoreManager.editPreference(
+                                        currentScreen.internetPrefKey, false
+                                    )
+                                }
+                            },
+                            text = stringResource(id = R.string.disable_projection),
+                            textDecoration = TextDecoration.Underline,
+                            color = colorScheme.primary
+                        )
+                        currentProjection.privacyLinkRes?.let { tcRes ->
+                            PrivacyLinkButton(tcRes)
+                        }
+                    }
+
+
+                }
                 currentProjection.explanationRes?.let { exp ->
                     Text(
-                        modifier = Modifier.fillMaxWidth(0.75f),
+                        modifier = Modifier.fillMaxWidth(0.9f),
                         text = stringResource(id = exp),
                         style = typography.labelMedium,
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Justify,
+                        color = colorScheme.onBackground.copy(alpha = 0.8f)
                     )
                 }
-                Text(
-                    text = updatedAtString,
-                    style = typography.bodyLarge,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            val internetPrefKey by remember {
-                derivedStateOf {
-                    booleanPreferencesKey(prefKeyForProjection(currentProjection))
+                if (hasInternetPermission == true) {
+                    Text(
+                        text = updatedAtString,
+                        style = typography.bodyLarge,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
-            val dataStoreManager = DataStoreManager(context.dataStore)
 
-            var requestInternet by remember {
-                mutableStateOf<Boolean?>(null)
-            }
-
-            LaunchedEffect(key1 = currentProjection) {
-                requestInternet = null
-                requestInternet = when (currentProjection.usesInternet) {
-                    true -> {
-                        val internetAllowedRequest: PreferenceRequest<Boolean> = PreferenceRequest(
-                            key = internetPrefKey,
-                            defaultValue = false,
-                        )
-                        val allowed = dataStoreManager.getPreference(internetAllowedRequest)
-                        Log.i(TAG, "Status for ${internetPrefKey.name}: $allowed")
-                        !allowed
-                    }
-                    else -> false
-                }
-            }
-            val coroutineScope = rememberCoroutineScope()
-
-            when (requestInternet) {
-                null -> WaitingScreen(0.75f, showLabel = false)
-                true -> RequestInternetPermissionScreen(currentProjection) {
+            when (hasInternetPermission) {
+                null -> {}
+                false -> RequestInternetPermissionScreen(currentProjection) {
                     coroutineScope.launch {
-                        dataStoreManager.editPreference(internetPrefKey, true)
+                        context.dataStoreManager.editPreference(
+                            currentScreen.internetPrefKey, true
+                        )
                         Log.i(
                             TAG,
-                            "Stored preference true for accessing internet, ${internetPrefKey.name}"
+                            "Stored preference true for accessing internet, ${currentScreen.internetPrefKey.name}"
                         )
                     }
-                    requestInternet = false
                 }
-                else -> CoordinateView(latLong, currentProjection, formatProjection)
+                true -> CoordinateView(latLong, currentScreen)
             }
 
         }
@@ -258,9 +289,23 @@ fun CoordinateViewerScreen(
 }
 
 @Composable
+fun PrivacyLinkButton(@StringRes linkRes: Int) {
+    val context = LocalContext.current
+    Text(
+        modifier = Modifier.clickable {
+            val linkSource = context.getString(linkRes)
+            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(linkSource))
+            ContextCompat.startActivity(context, browserIntent, null)
+        },
+        text = stringResource(R.string.privacy),
+        textDecoration = TextDecoration.Underline,
+        color = colorScheme.primary
+    )
+}
+
+@Composable
 fun RequestInternetPermissionScreen(
-    currentProjection: SupportedProjection,
-    grantPermission: () -> Unit
+    currentProjection: SupportedProjection, grantPermission: () -> Unit
 ) {
     Column(
         Modifier.fillMaxSize(),
@@ -270,35 +315,28 @@ fun RequestInternetPermissionScreen(
         val projectionName = stringResource(id = currentProjection.longNameRes)
         Text(
             stringResource(
-                id = R.string.coordinate_system_request_internet_text_format,
-                projectionName
+                id = R.string.coordinate_system_request_internet_text_format, projectionName
             ),
             style = typography.bodyLarge,
             modifier = Modifier.fillMaxWidth(0.8f),
             textAlign = TextAlign.Justify
         )
-        androidx.compose.material3.Button(onClick = grantPermission) {
-            Text(text = stringResource(id = R.string.grant_permission_internet))
+        currentProjection.privacyLinkRes?.let {
+            PrivacyLinkButton(linkRes = it)
+        }
+        Button(onClick = grantPermission) {
+            Text(text = stringResource(id = R.string.grant_permission))
         }
     }
 }
 
 @Composable
 fun CoordinateView(
-    latLong: LatLongDecimalWgs84Point,
-    currentProjection: SupportedProjection,
-    formatProjection: suspend () -> List<LabelledDatum>
+    latLong: LatLongDecimalWgs84Point, screen: CoordsScreen
 ) {
-    val formatElements = remember { mutableStateListOf<LabelledDatum>() }
-    LaunchedEffect(latLong.latitude, latLong.longitude, currentProjection) {
-        Log.i(
-            TAG, "Triggering recomputation: LatLong $latLong, projection $currentProjection"
-        )
-        CoroutineScope(Dispatchers.IO).launch {
-            formatElements.clear()
-            formatElements.addAll(formatProjection.invoke())
-        }
-    }
+    val formatElements by screen.getAll(latLong)
+        .collectAsState(initial = emptyList(), context = Dispatchers.IO)
+
     LazyColumn(
         Modifier
             .fillMaxSize()
@@ -306,12 +344,12 @@ fun CoordinateView(
         verticalArrangement = Arrangement.SpaceEvenly,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (formatElements.size == 0) {
-            item {
+        when (formatElements?.size) {
+            null -> {}
+            0 -> item {
                 WaitingScreen(0.75f)
             }
-        } else {
-            items(formatElements) {
+            else -> items(formatElements!!) {
                 LabelledDatumView(labelledDatum = it)
             }
         }
@@ -351,25 +389,39 @@ fun WaitingScreen(weight: Float = 1f, showLabel: Boolean = true) {
 @Composable
 fun LabelledDatumView(labelledDatum: LabelledDatum) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally
     ) {
         val contentColor = when (labelledDatum.priority) {
-            1 -> colorScheme.onBackground
+            in 0..49 -> colorScheme.onBackground
             else -> colorScheme.onBackground.copy(alpha = 0.8f)
         }
         Text(
-            text = stringResource(id = labelledDatum.label), style = when (labelledDatum.priority) {
-                1 -> typography.displaySmall.copy(fontSize = 30.sp)
-                else -> typography.displaySmall.copy(fontSize = 28.sp)
-            }, color = contentColor
-        )
-        Text(
-            text = labelledDatum.datum, style = when (labelledDatum.priority) {
-                1 -> typography.displayMedium
-                else -> typography.displaySmall
-            }, fontFamily = FontFamily.Monospace, textAlign = TextAlign.Center, color = contentColor
+            text = buildAnnotatedString {
+                val titleStyle = typography.displaySmall.copy(
+                    color = contentColor, fontSize = when (labelledDatum.priority) {
+                        in 0..19 -> 30.sp
+                        else -> 28.sp
+                    }
+                )
+                withStyle(titleStyle.toParagraphStyle()) {
+                    withStyle(titleStyle.toSpanStyle()) {
+                        append(stringResource(id = labelledDatum.label))
+                    }
+                }
+                val datumStyle = when (labelledDatum.priority) {
+                    in 0..19 -> typography.displayMedium
+                    else -> typography.displaySmall
+                }
+                withStyle(datumStyle.toParagraphStyle()) {
+                    withStyle(
+                        datumStyle.toSpanStyle().copy(
+                            color = contentColor, fontFamily = FontFamily.Monospace
+                        )
+                    ) {
+                        append(labelledDatum.datum)
+                    }
+                }
+            }, textAlign = labelledDatum.textAlign
         )
     }
 }

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Coords</string>
+    <string name="latitude">Länge</string>
+    <string name="longitude">Breite</string>
+    <string name="rationale_after_denied">Coords benötigt Zugriff auf Ihren GPS-Standort und kann anderweitig nicht funktionieren. Bitte erteilen Sie die Erlaubnis:</string>
+    <string name="rationale_first_grant">Coords benötigt Zugang zu Ihrem genauem GPS-Standort. Bitte erteilen Sie hier die Erlaubnis:</string>
+    <string name="rationale_no_permissions">Diese App benötigt Zugang zu Ihrem genauen GPS-Standort. Der Zugriff auf den ungefähren Standort ist nicht präzise genug, und reicht daher nicht aus. Bitte erteilen Sie hier den Zugriff auf den genauen Standort:</string>
+    <string name="rationale_upgrade_fine">Sie haben nur Zugriff auf den ungefähren Standort erteilt, aber diese App benötigt Zugriff auf Ihren präzisen GPS-Standort. Bitte erteilen Sie hier auch den Zugriff auf den GPS-Standort:</string>
+    <string name="grant_permission">Berechtigung erteilen</string>
+    <string name="waiting_for_location">Warte auf Aktualisierung des Standorts…</string>
+    <string name="wgs84_dec_short">WGS84 Dez.</string>
+    <string name="wgs84_dec_long">WGS84 Dezimal</string>
+    <string name="wgs84_dms_short">WGS84 DMS</string>
+    <string name="wgs84_dms_long">WGS84 Grad-Minuten-Sekunden</string>
+    <string name="north_symbol">N</string>
+    <string name="south_symbol">S</string>
+    <string name="east_symbol">O</string>
+    <string name="west_symbol">W</string>
+    <string name="last_update_format">Aktualisiert: %s</string>
+    <string name="utm_short">UTM</string>
+    <string name="utm_long">UTM (Universale Transverse Mercatorprojektion)</string>
+    <string name="northing">Nordwert</string>
+    <string name="easting">Ostwert</string>
+    <string name="altitude">Höhe</string>
+    <string name="accuracy">Genauigkeit</string>
+    <string name="bearing">Kurs</string>
+    <string name="olc_code_explanation">\"Open Location Codes\" sind eine quelloffene Spezifikation von Google für kurze Adressen. Sie sind auch als \"Plus Codes\" bekannt.</string>
+    <string name="w3w_explanation">what3words ist ein raster-basierter Algorithmus, der Drei-Wort-Addressen zu den Rasterpunkten zuordnet.</string>
+    <string name="w3w_address">Drei-Wort-Adresse</string>
+    <string name="w3w_error">Fehler bei der Anfrage an what3words :(</string>
+    <string name="utm_zone">UTM-Zone</string>
+    <string name="coordinate_system_request_internet_text_format">Die ausgewählte Projektion, %s, muss Ihren Standort an einen externen Dienst senden. Dies wird nur durchgeführt, wenn Sie den untenstehenden Button betätigen und Ihr Einverständnis erteilen.\\nSie können die Funktionalität daraufhin durch den kleinen Link \"Deaktivieren\" unterhalb des Titels der Projektion oben auf dem Bildschirm deaktivieren.</string>
+    <string name="disable_projection">Projektion deaktivieren</string>
+    <string name="privacy">Privatsphäre</string>
+    <string name="utm_explanation">UTM is commonly used by emergency services in Europe.</string>
+</resources>
