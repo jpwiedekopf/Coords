@@ -5,11 +5,22 @@ pluginManagement {
         mavenCentral()
     }
 }
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    def ghProps = new Properties()
+    file("authentication.properties").withInputStream { ghProps.load(it) }
     repositories {
         google()
         mavenCentral()
+        maven {
+            url = uri("https://maven.pkg.github.com/jpwiedekopf/JCoord")
+            credentials {
+
+                username = ghProps['GITHUB_USERNAME']
+                password = ghProps['GITHUB_PAT']
+            }
+        }
     }
 }
 rootProject.name = "Coords"
