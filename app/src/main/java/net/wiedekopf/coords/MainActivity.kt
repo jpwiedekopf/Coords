@@ -5,9 +5,11 @@ import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -52,9 +54,9 @@ fun MissingPermissionsContent(locationPermissionState: MultiplePermissionsState)
     Column(
         Modifier
             .fillMaxSize()
-            .padding(horizontal = 8.dp),
+            .background(colorScheme.background),
         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         val fineLocationUpgradeRequest = rememberPermissionState(permission = ACCESS_FINE_LOCATION)
         val coarseStatus =
@@ -68,10 +70,12 @@ fun MissingPermissionsContent(locationPermissionState: MultiplePermissionsState)
         val (rationale, grantRequest) = request
         Text(
             rationale,
+            modifier = Modifier.fillMaxWidth(0.8f),
             style = MaterialTheme.typography.headlineSmall,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Justify,
+            color = colorScheme.onBackground
         )
-        FilledTonalButton(onClick = grantRequest) {
+        Button(onClick = grantRequest) {
             Text(stringResource(id = R.string.grant_permissions), fontWeight = FontWeight.Bold)
         }
     }

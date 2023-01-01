@@ -6,9 +6,12 @@ import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.util.Log
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LocalContentColor
@@ -26,17 +29,28 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.PagerState
 import com.google.accompanist.pager.rememberPagerState
+import de.schnettler.datastore.manager.DataStoreManager
+import de.schnettler.datastore.manager.PreferenceRequest
 import kotlinx.coroutines.*
 import org.threeten.bp.LocalDateTime
 import org.threeten.bp.format.DateTimeFormatter
 
 private const val TAG = "CoordsApp"
 private val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+private val Context.dataStore by preferencesDataStore(
+    name = "settings"
+)
+
+private fun prefKeyForProjection(projection: SupportedProjection) =
+    "allow_internet_${projection::class.simpleName}"
+
 
 @OptIn(ExperimentalPagerApi::class)
 @SuppressLint("MissingPermission")
@@ -112,15 +126,13 @@ fun AppBottomBar(
             contentColor = colorScheme.onPrimaryContainer,
         ) {
             projections.forEachIndexed { page, proj ->
-                Tab(
-                    selected = currentPage == page, onClick = { onChangePage(page) },
-                    text = {
-                        Text(
-                            stringResource(proj.shortNameRes),
-                            color = colorScheme.onPrimaryContainer,
-                            style = typography.bodyLarge
-                        )
-                    })
+                Tab(selected = currentPage == page, onClick = { onChangePage(page) }, text = {
+                    Text(
+                        stringResource(proj.shortNameRes),
+                        color = colorScheme.onPrimaryContainer,
+                        style = typography.bodyLarge
+                    )
+                })
             }
         }
     }
@@ -198,37 +210,120 @@ fun CoordinateViewerScreen(
                     fontWeight = FontWeight.Bold
                 )
             }
-            val formatElements = remember { mutableStateListOf<LabelledDatum>() }
-            LaunchedEffect(currentProjection) {
-                formatElements.clear()
-            }
-            LaunchedEffect(latLong.latitude, latLong.longitude, currentProjection) {
-                Log.i(
-                    TAG,
-                    "Triggering recomputation: LatLong $latLong, projection $currentProjection"
-                )
-                CoroutineScope(Dispatchers.IO).launch {
-                    formatElements.clear()
-                    formatElements.addAll(formatProjection.invoke())
+            val internetPrefKey by remember {
+                derivedStateOf {
+                    booleanPreferencesKey(prefKeyForProjection(currentProjection))
                 }
             }
-            LazyColumn(
-                Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.SpaceEvenly,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                items(formatElements) {
-                    LabelledDatumView(labelledDatum = it)
+            val dataStoreManager = DataStoreManager(context.dataStore)
+
+            var requestInternet by remember {
+                mutableStateOf<Boolean?>(null)
+            }
+
+            LaunchedEffect(key1 = currentProjection) {
+                requestInternet = null
+                requestInternet = when (currentProjection.usesInternet) {
+                    true -> {
+                        val internetAllowedRequest: PreferenceRequest<Boolean> = PreferenceRequest(
+                            key = internetPrefKey,
+                            defaultValue = false,
+                        )
+                        val allowed = dataStoreManager.getPreference(internetAllowedRequest)
+                        Log.i(TAG, "Status for ${internetPrefKey.name}: $allowed")
+                        !allowed
+                    }
+                    else -> false
                 }
+            }
+            val coroutineScope = rememberCoroutineScope()
+
+            when (requestInternet) {
+                null -> WaitingScreen(0.75f, showLabel = false)
+                true -> RequestInternetPermissionScreen(currentProjection) {
+                    coroutineScope.launch {
+                        dataStoreManager.editPreference(internetPrefKey, true)
+                        Log.i(
+                            TAG,
+                            "Stored preference true for accessing internet, ${internetPrefKey.name}"
+                        )
+                    }
+                    requestInternet = false
+                }
+                else -> CoordinateView(latLong, currentProjection, formatProjection)
+            }
+
+        }
+    }
+}
+
+@Composable
+fun RequestInternetPermissionScreen(
+    currentProjection: SupportedProjection,
+    grantPermission: () -> Unit
+) {
+    Column(
+        Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        val projectionName = stringResource(id = currentProjection.longNameRes)
+        Text(
+            stringResource(
+                id = R.string.coordinate_system_request_internet_text_format,
+                projectionName
+            ),
+            style = typography.bodyLarge,
+            modifier = Modifier.fillMaxWidth(0.8f),
+            textAlign = TextAlign.Justify
+        )
+        androidx.compose.material3.Button(onClick = grantPermission) {
+            Text(text = stringResource(id = R.string.grant_permission_internet))
+        }
+    }
+}
+
+@Composable
+fun CoordinateView(
+    latLong: LatLongDecimalWgs84Point,
+    currentProjection: SupportedProjection,
+    formatProjection: suspend () -> List<LabelledDatum>
+) {
+    val formatElements = remember { mutableStateListOf<LabelledDatum>() }
+    LaunchedEffect(latLong.latitude, latLong.longitude, currentProjection) {
+        Log.i(
+            TAG, "Triggering recomputation: LatLong $latLong, projection $currentProjection"
+        )
+        CoroutineScope(Dispatchers.IO).launch {
+            formatElements.clear()
+            formatElements.addAll(formatProjection.invoke())
+        }
+    }
+    LazyColumn(
+        Modifier
+            .fillMaxSize()
+            .scrollable(state = rememberScrollState(), orientation = Orientation.Vertical),
+        verticalArrangement = Arrangement.SpaceEvenly,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if (formatElements.size == 0) {
+            item {
+                WaitingScreen(0.75f)
+            }
+        } else {
+            items(formatElements) {
+                LabelledDatumView(labelledDatum = it)
             }
         }
     }
 }
 
 @Composable
-fun WaitingScreen() {
+fun WaitingScreen(weight: Float = 1f, showLabel: Boolean = true) {
     Column(
-        Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize(weight)
+            .padding(8.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -240,13 +335,15 @@ fun WaitingScreen() {
                     .aspectRatio(1f),
                 color = colorScheme.secondary
             )
-            Text(
-                modifier = Modifier.fillMaxWidth(0.5f),
-                text = stringResource(id = R.string.waiting_for_location),
-                style = typography.headlineSmall,
-                color = colorScheme.primary,
-                textAlign = TextAlign.Center
-            )
+            if (showLabel) {
+                Text(
+                    modifier = Modifier.fillMaxWidth(0.5f),
+                    text = stringResource(id = R.string.waiting_for_location),
+                    style = typography.headlineSmall,
+                    color = colorScheme.primary,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }

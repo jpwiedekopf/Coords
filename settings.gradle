@@ -16,11 +16,11 @@ dependencyResolutionManagement {
         maven {
             url = uri("https://maven.pkg.github.com/jpwiedekopf/JCoord")
             credentials {
-
                 username = ghProps['GITHUB_USERNAME']
                 password = ghProps['GITHUB_PAT']
             }
         }
+        maven { url = uri("https://jitpack.io") }
     }
 }
 rootProject.name = "Coords"

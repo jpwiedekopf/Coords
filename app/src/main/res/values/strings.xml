@@ -34,4 +34,7 @@
     <string name="w3w_explanation">What3Words is a grid-based algorithm to assign three-word codes to grid tiles. This uses an external service that only receives the current position.</string>
     <string name="w3w_address">What3Words Address (EN)</string>
     <string name="w3w_error">Error requesting What3Words address :(</string>
+    <string name="utm_zone">UTM Zone</string>
+    <string name="coordinate_system_request_internet_text_format">The chosen projection, %s, needs to send your location to an external service for geocoding. This will only be done if you grant permission to do this if you click the below button. You can disable the permission after granting it by tapping the small \"disable\" link below the projection name at the top of the screen.</string>
+    <string name="grant_permission_internet">Grant permission</string>
 </resources>

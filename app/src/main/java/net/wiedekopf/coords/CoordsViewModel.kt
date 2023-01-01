@@ -14,6 +14,7 @@ import org.locationtech.proj4j.CoordinateTransform
 import org.locationtech.proj4j.CoordinateTransformFactory
 import org.locationtech.proj4j.ProjCoordinate
 import org.threeten.bp.LocalDateTime
+import uk.me.jstott.jcoord.LatLng
 import java.math.BigDecimal
 import javax.inject.Inject
 import kotlin.math.roundToInt
@@ -30,7 +31,7 @@ class CoordsViewModel @Inject constructor() : ViewModel() {
     var updatedAt: StateFlow<LocalDateTime?> = _updatedAt
 
     private val _currentProjection = MutableStateFlow(SupportedProjection.all.first())
-    val currentProjection : StateFlow<SupportedProjection> = _currentProjection
+    val currentProjection: StateFlow<SupportedProjection> = _currentProjection
 
     suspend fun formatData(context: Context): List<LabelledDatum> = _latLongWgs84.value?.let {
         val specific = _currentProjection.value.formatter.invoke(it, context)
@@ -151,7 +152,7 @@ sealed class SupportedProjection(
     @StringRes val longNameRes: Int,
     @StringRes val explanationRes: Int? = null,
     val formatter: suspend (LatLongDecimalWgs84Point, Context) -> List<LabelledDatum>,
-    @Suppress("UNUSED_PARAMETER") usesInternet: Boolean = false
+    val usesInternet: Boolean = false
 ) {
     companion object {
         val all = listOf(UTM, WGS84Decimal, WGS84DMS, OpenLocationCode, What3Words)
@@ -209,10 +210,13 @@ sealed class SupportedProjection(
 
     object UTM : SupportedProjection(shortNameRes = R.string.utm_short,
         longNameRes = R.string.utm_long,
-        formatter = { _, _ ->
-            val northing = "NYI"
-            val easting = "NYI"
+        formatter = { latLong, _ ->
+            val latLongRef = LatLng(latLong.latitude.toDouble(), latLong.longitude.toDouble())
+            val utmRef = latLongRef.toUTMRef()
+            val northing = utmRef.northing.roundToInt().toString()
+            val easting = utmRef.easting.roundToInt().toString()
             listOf(
+                LabelledDatum(R.string.utm_zone, "${utmRef.lngZone}${utmRef.latZone}"),
                 LabelledDatum(R.string.northing, northing), LabelledDatum(R.string.easting, easting)
             )
         })
