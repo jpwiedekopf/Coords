@@ -1,9 +1,9 @@
 # suppress inspection "UnusedProperty" for whole file
 
 
+# !! *DO* USE QUOTES HERE
+W3W_API_KEY="YOUR-WHAT3WORDS-API-KEY"
 
-W3W_API_KEY=YOUR-WHAT3WORDS-API-KEY
-
-# !! DO NOT USE QUOTES FOR GITHUB CREDENTIALS !!
+# !! DO *NOT* USE QUOTES FOR GITHUB CREDENTIALS !!
 GITHUB_USERNAME=your-username
 GITHUB_PAT=your-pat-with-scope-package-read

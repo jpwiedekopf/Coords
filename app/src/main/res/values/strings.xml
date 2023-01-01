@@ -27,8 +27,8 @@
     <string name="altitude_format">%.1f m</string>
     <string name="accuracy_format">±%.1f m</string>
     <string name="bearing_format">%d°</string>
-    <string name="plus_code_short">Plus Code</string>
-    <string name="plus_code_explanation">\"Plus codes\" are an open specification by Google, also known as the \"Open Location Code\".</string>
+    <string name="olc_code">Open Location Code</string>
+    <string name="olc_code_explanation">\"Open Location Code\" are an open specification by Google, also known as the \"Plus Code\". The returned code is accurate to 3.4m.</string>
     <string name="w3w_short">What3Words</string>
     <string name="w3w_long">What3Words</string>
     <string name="w3w_explanation">What3Words is a grid-based algorithm to assign three-word codes to grid tiles. This uses an external service that only receives the current position.</string>

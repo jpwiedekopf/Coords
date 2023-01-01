@@ -7,6 +7,8 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.util.Log
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LocalContentColor
@@ -32,7 +34,6 @@ import com.google.accompanist.pager.rememberPagerState
 import kotlinx.coroutines.*
 import org.threeten.bp.LocalDateTime
 import org.threeten.bp.format.DateTimeFormatter
-import kotlin.math.roundToInt
 
 private const val TAG = "CoordsApp"
 private val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -62,15 +63,11 @@ fun CoordsAppContent() {
     val locationManager =
         ContextCompat.getSystemService(context, LocationManager::class.java) as LocationManager
 
-    val projections = SupportedProjection.values().toList()
+    val projections = SupportedProjection.all
+
+    val currentProjection by viewModel.currentProjection.collectAsState()
 
     val pagerState = rememberPagerState(0)
-
-    val currentProjection by remember {
-        derivedStateOf {
-            projections[pagerState.currentPage]
-        }
-    }
 
     val scaffoldState = rememberScaffoldState()
     val coroutineScope = rememberCoroutineScope()
@@ -88,6 +85,7 @@ fun CoordsAppContent() {
             if (myLocation != null) AppBottomBar(projections, pagerState.currentPage) {
                 coroutineScope.launch {
                     pagerState.scrollToPage(it)
+                    viewModel.setProjection(projections[it])
                 }
             }
         }) { scaffoldPadding ->
@@ -138,11 +136,14 @@ fun DisplayCoordinates(
 ) {
     val latLong by viewModel.latLongWgs84.collectAsState()
     val lastUpdate by viewModel.updatedAt.collectAsState()
+    val context = LocalContext.current
     when (latLong) {
         null -> WaitingScreen()
         else -> CoordinateViewerScreen(
             latLong!!, currentProjection, lastUpdate!!, pagerState, numberOfPages
-        )
+        ) {
+            viewModel.formatData(context)
+        }
     }
 }
 
@@ -156,7 +157,8 @@ fun CoordinateViewerScreen(
     currentProjection: SupportedProjection,
     lastUpdate: LocalDateTime,
     pagerState: PagerState,
-    numberOfPages: Int
+    numberOfPages: Int,
+    formatProjection: suspend () -> List<LabelledDatum>
 ) = HorizontalPager(count = numberOfPages, state = pagerState) {
     Column(Modifier.fillMaxSize()) {
         val context = LocalContext.current
@@ -196,56 +198,32 @@ fun CoordinateViewerScreen(
                     fontWeight = FontWeight.Bold
                 )
             }
-            Column(
+            val formatElements = remember { mutableStateListOf<LabelledDatum>() }
+            LaunchedEffect(currentProjection) {
+                formatElements.clear()
+            }
+            LaunchedEffect(latLong.latitude, latLong.longitude, currentProjection) {
+                Log.i(
+                    TAG,
+                    "Triggering recomputation: LatLong $latLong, projection $currentProjection"
+                )
+                CoroutineScope(Dispatchers.IO).launch {
+                    formatElements.clear()
+                    formatElements.addAll(formatProjection.invoke())
+                }
+            }
+            LazyColumn(
                 Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.SpaceEvenly,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                val formatElements = remember { mutableStateListOf<LabelledDatum>() }
-
-                LaunchedEffect(latLong, pagerState.currentPage) {
-                    formatElements.clear()
-                    CoroutineScope(Dispatchers.IO).launch {
-                        formatElements.addAll(latLong.format(currentProjection, context))
-                    }
-                    formatElements.addAll(commonElementsForLocation(latLong, context))
-                }
-                formatElements.forEach {
+                items(formatElements) {
                     LabelledDatumView(labelledDatum = it)
                 }
             }
         }
     }
 }
-
-fun commonElementsForLocation(
-    latLong: LatLongDecimalWgs84Point, context: Context
-): List<LabelledDatum> = listOfNotNull(
-    when (latLong.rawLocation.hasAltitude()) {
-        true -> LabelledDatum(
-            label = R.string.altitude,
-            datum = context.getString(R.string.altitude_format, latLong.rawLocation.altitude),
-            priority = 2
-        )
-        else -> null
-    },
-    when (latLong.rawLocation.hasAccuracy()) {
-        true -> LabelledDatum(
-            label = R.string.accuracy,
-            datum = context.getString(R.string.accuracy_format, latLong.rawLocation.accuracy),
-            priority = 2
-        )
-        else -> null
-    },
-    when (latLong.rawLocation.hasBearing()) {
-        true -> LabelledDatum(
-            label = R.string.bearing, datum = context.getString(
-                R.string.bearing_format, latLong.rawLocation.bearing.roundToInt()
-            ), priority = 2
-        )
-        else -> null
-    },
-)
 
 @Composable
 fun WaitingScreen() {
